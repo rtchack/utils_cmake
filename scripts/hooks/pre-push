@@ -1,0 +1,49 @@
+#! /usr/bin/env sh
+
+target_ref=''
+z40=0000000000000000000000000000000000000000
+
+current_ref="$(git rev-parse --abbrev-ref HEAD)"
+target_ref=""
+
+while read local_ref local_sha remote_ref remote_sha
+do
+	if [ "$local_sha" = $z40 ]
+	then
+		# Handle delete
+    exit 0
+  else
+		if [ "$remote_sha" = $z40 ]
+		then
+			# New branch, examine all commits
+			range="$local_sha"
+      target_ref=$local_ref
+		else
+			# Update to existing branch, examine new commits
+			range="$remote_sha..$local_sha"
+      target_ref=$remote_ref
+		fi
+
+		# Check for WIP commit
+		commit=`git rev-list -n 1 --grep '^WIP' "$range"`
+		if [ -n "$commit" ]
+		then
+			echo "Found WIP commit in $local_ref, not pushing"
+			exit 1
+		fi
+	fi
+done
+
+if [ -z "$target_ref" ]
+then
+  exit 0;
+fi
+
+case $target_ref in
+  refs/heads/tmp*) exit 0;;
+  refs/heads/$current_ref)
+    rake test ;;
+  *)
+    echo "Please run 'git checkout $target_ref' before push."
+    exit 1;;
+esac
