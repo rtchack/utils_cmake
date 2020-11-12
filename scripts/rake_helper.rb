@@ -257,22 +257,22 @@ end
 
 namespace :docker do
   task :exists do
-    raise 'Docker not enabled' unless $docker
+    raise 'Docker not enabled!' unless $docker
   end
 
   desc 'Build docker image'
   task :build => [:exists] do
-    Docker.build
+    $docker.build
   end
 
   desc 'Run docker'
   task :run => [:exists] do
-    Docker.run
+    $docker.run
   end
 
   desc 'Stop docker'
   task :stop => [:exists] do
-    Docker.stop
+    $docker.stop
   end
 end
 
@@ -283,13 +283,13 @@ namespace :debug do
 
   desc 'Just build'
   task :build, [:what, :be_verb] => :generate do |_t, args|
-    args.with_defaults what: Targets.dft_bin
+    args.with_defaults what: $dft_bin
     build args.what, type: 'debug', verb: args.be_verb
   end
 
   desc 'Test'
   task :test, [:what, :be_verb] => :generate do |_t, args|
-    args.with_defaults what: Targets.dft_test
+    args.with_defaults what: $dft_test
     build "test_#{args.what}", type: 'debug', verb: args.be_verb, run: true
   end
 
@@ -305,12 +305,12 @@ namespace :release do
   end
 
   task :build, [:what, :be_verb] => :generate do |_t, args|
-    args.with_defaults what: Targets.dft_bin
+    args.with_defaults what: $dft_bin
     build args.what, verb: args.be_verb
   end
 
   task :test, [:what, :be_verb] => :generate do |_t, args|
-    args.with_defaults what: Targets.dft_test
+    args.with_defaults what: $dft_test
     build "test_#{args.what}", verb: args.be_verb, run: true
   end
 
