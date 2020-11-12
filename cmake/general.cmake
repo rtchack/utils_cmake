@@ -81,7 +81,7 @@ function(target_optimize_perf name)
   endif ()
 endfunction()
 
-function(target_inc_libreries)
+function(target_inc_libraries)
   list(GET ARGV 0 tgt)
   list(REMOVE_AT ARGV 0)
 
@@ -95,7 +95,7 @@ endfunction()
 
 function(target_link_and_inc_libraries)
   target_link_libraries(${ARGV})
-  target_inc_libreries(${ARGV})
+  target_inc_libraries(${ARGV})
 endfunction()
 
 # Borrowed from GoogleTest
