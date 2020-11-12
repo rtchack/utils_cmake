@@ -142,10 +142,10 @@ def generate(type)
 
     begin
       case OS.local
-      when /^(linux|mac)$/
+      when /^(linux|mac|win)$/
         ex "cmake #{$root_dir} -DCMAKE_BUILD_TYPE=#{type.capitalize}"
       else
-        non_supported_os
+        ex "cmake #{$root_dir} -DCMAKE_BUILD_TYPE=#{type.capitalize}"
       end
     rescue
       State.set :cmake_failed, true
@@ -164,7 +164,9 @@ def build(target, type: 'release', verb: false, run: false)
 --target #{target} \
 -- -j$(nproc) #{verb ? 'VERBOSE=1' : ''}"
       else
-        non_supported_os
+        ex "cmake --build . \
+--target #{target} \
+--config #{type.capitalize} --verbose #{verb ? 'VERBOSE=1' : ''}"
       end
     rescue
       State.set :cmake_failed, true
