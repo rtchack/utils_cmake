@@ -209,6 +209,7 @@ macro(config_current_platform)
     cmake_print_variables(CURRENT_OS CMAKE_CXX_COMPILER_ID CMAKE_C_COMPILER_ID)
 endmacro()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CheckTypeSize)
 include(CMakePrintHelpers)
 config_current_platform()
