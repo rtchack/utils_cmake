@@ -18,6 +18,27 @@ set(PROGRAM_VERSION
         STRING
         "Program version")
 
+macro(check_pkg_ver ver)
+    set(PACKAGE_VERSION ${ver})
+
+    if (NOT ver OR
+    (PACKAGE_FIND_VERSION VERSION_EQUAL PACKAGE_VERSION))
+        set(PACKAGE_VERSION_EXACT TRUE)
+        set(PACKAGE_VERSION_COMPATIBLE TRUE)
+        set(PACKAGE_VERSION_UNSUITABLE FALSE)
+    else ()
+        set(PACKAGE_VERSION_EXACT FALSE)
+
+        if (PACKAGE_FIND_VERSION VERSION_GREATER PACKAGE_VERSION)
+            set(PACKAGE_VERSION_COMPATIBLE TRUE)
+            set(PACKAGE_VERSION_UNSUITABLE FALSE)
+        else ()
+            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+            set(PACKAGE_VERSION_UNSUITABLE TRUE)
+        endif ()
+    endif ()
+endmacro()
+
 cmake_print_variables(
         PROGRAM_GIT_VERSION
         PROGRAM_VERSION_MAJOR
