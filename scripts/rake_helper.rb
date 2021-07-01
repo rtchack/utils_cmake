@@ -4,14 +4,13 @@
 
 SCRIPT_DIR = File.dirname __FILE__
 
-require 'yaml'
-
 %w[ app_kit
     extract_ngx_checks
     check_os
     my_file_utils
     docker
-    proto ].each do |s| 
+    proto
+    lite_cache].each do |s| 
       require File.join(SCRIPT_DIR, 'utils', s)
 end
 
@@ -71,59 +70,9 @@ def use_docker(pkg_name: nil, pkg_ver: nil, in_port: 0, out_port: 0)
   prepare_docker
 end
 
-# State checker
-class State
-  HISTORY_FILE = File.join SCRIPT_DIR, '.rake_history'
 
-  @@history = nil
-  @@current = nil
-
-  class << self
-    def load
-      raise 'src_file_num should be set' unless $src_file_num > 0
-
-      unless @@history
-        @@history = File.exist?(HISTORY_FILE) ? YAML.load(File.read HISTORY_FILE) : nil
-        if @@history
-          puts "History: #{@@history}.".light_blue
-        end
-      end
-
-      unless @@current
-        @@current = {
-          last_git_rev: %x(git rev-parse --short HEAD).rstrip,
-          n_src_files: $src_file_num,
-          cmake_failed: @@history && @@history.key?(:cmake_failed) ?
-              @@history[:cmake_failed] : true,
-        }
-        puts "Current: #{@@current}.".light_blue
-        File.write HISTORY_FILE, @@current.to_yaml
-      end
-    end
-
-    def [](key)
-      load
-      @@current[key]
-    end
-
-    def set(key, value)
-      load
-      @@current[key] = value
-      File.write HISTORY_FILE, @@current.to_yaml
-    end
-
-    def updated?(*keys)
-      load
-      return true unless @@history
-
-      keys.each do |k|
-        h = @@history[k]
-        return true unless h && h == @@current[k]
-      end
-      false
-    end
-  end
-end
+HISTORY_FILE = File.join SCRIPT_DIR, '.rake_history'
+$history = LiteCache.new HISTORY_FILE
 
 def cd_build_dir(type)
   dir = File.join $build_dir, type
@@ -136,9 +85,9 @@ end
 def generate(type)
   cd_build_dir type do
     return if File.exist?('CMakeCache.txt') &&
-              !State.updated?(:n_src_files) &&
-              !State[:cmake_failed] &&
-              !State.updated?(:last_git_rev)
+              !$history.updated?(:n_src_files) &&
+              !$history.get(:cmake_failed) &&
+              !$history.updated?(:last_git_rev)
 
     begin
       case OS.local
@@ -148,10 +97,10 @@ def generate(type)
         ex "cmake #{$root_dir} -DCMAKE_BUILD_TYPE=#{type.capitalize}"
       end
     rescue
-      State.set :cmake_failed, true
+      $history.set :cmake_failed, true
       raise $?
     end
-    State.set :cmake_failed, false
+    $history.set :cmake_failed, false
   end 
 end
 
@@ -169,10 +118,10 @@ def build(target, type: 'release', verb: false, run: false)
 --config #{type.capitalize} --verbose #{verb ? 'VERBOSE=1' : ''}"
       end
     rescue
-      State.set :cmake_failed, true
+      $history.set :cmake_failed, true
       raise $?
     end
-    State.set :cmake_failed, false
+    $history.set :cmake_failed, false
 
     ex "$(find . -type f -name #{target})" if run
   end
