@@ -10,12 +10,11 @@ class LiteCache
     @cache_file = file_name
 
     @old = File.exist?(@cache_file) ? YAML.load(File.read @cache_file) : nil
-    @current = @old
+    @current = @old || {}
     puts "Cache: #{@old}.".light_blue
   end
 
   def get(key)
-    raise "No cache for '#{key}'" unless @current && @current[key]
     @current[key]
   end
 
