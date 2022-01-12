@@ -11,7 +11,7 @@ SUDO = %x(echo $EUID) =~ /^0$/ ? '' : 'sudo'
 
 def ex(cmd, su: false, verbose: true)
   real_cmd = su ? "#{SUDO} #{cmd}" : cmd
-  puts ">> #{real_cmd.yellow} <<" if verbose
+  puts "#{Time.now.localtime.to_s.pink}\n>> #{real_cmd.yellow} <<" if verbose
   raise $? unless system real_cmd
 end
 
