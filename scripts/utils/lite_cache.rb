@@ -27,8 +27,14 @@ class LiteCache
   end
 
   def on(key, value)
-    return get(key) unless value
-    set key, value
+    if value
+      set key, value
+      return
+    end
+
+    value = get(key)
+    raise "No value not set for '#{key}'" unless value
+    value
   end
 
   def any_updated?(*keys)
