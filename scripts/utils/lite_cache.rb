@@ -19,7 +19,7 @@ class LiteCache
   end
 
   def set(key, value)
-    return if @current && @current[key] == value
+    return value if @current && @current[key] == value
     @current = {} unless @current
     @current[key] = value
     File.write @cache_file, @current.to_yaml
