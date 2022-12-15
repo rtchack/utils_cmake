@@ -1,5 +1,5 @@
 #
-# Created by xing in 2021.
+# Created by galaxyhuang in 2021.
 #
 
 require 'yaml'
@@ -27,13 +27,10 @@ class LiteCache
   end
 
   def on(key, value)
-    if value
-      set key, value
-      return
-    end
+    return set key, value if value
 
-    value = get(key)
-    raise "No value not set for '#{key}'" unless value
+    value = get key
+    raise "Value not set for '#{key}'" unless value
     value
   end
 
