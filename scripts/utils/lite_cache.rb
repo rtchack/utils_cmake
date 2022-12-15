@@ -27,7 +27,7 @@ class LiteCache
   end
 
   def on(key, value)
-    return set key, value if value
+    return set(key, value) if value
 
     value = get key
     raise "Value not set for '#{key}'" unless value
