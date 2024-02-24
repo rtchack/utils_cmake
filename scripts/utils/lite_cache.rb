@@ -1,5 +1,5 @@
 #
-# Created by galaxyhuang in 2021.
+# Created by xing in 2021.
 #
 
 require 'yaml'
@@ -19,6 +19,11 @@ class LiteCache
   end
 
   def set(key, value)
+    if !value
+      return @current.delete(key) if @current.key? key
+      return nil
+    end
+
     return value if @current && @current[key] == value
     @current = {} unless @current
     @current[key] = value
