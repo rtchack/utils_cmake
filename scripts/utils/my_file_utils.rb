@@ -4,7 +4,7 @@
 
 require 'fileutils'
 
-def make_sure_dir_exists(name)
+def make_sure_dir_exist(name)
   if File.exist? name
     raise "#{name} should be a dir!" unless File.directory? name
   else

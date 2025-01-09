@@ -44,10 +44,10 @@ def prepare_git(root, hooks)
   FileUtils.cd hook_dir, verbose: false do
     hooks.each do |k, v|
       k_file = "#{hook_dir}/#{k}"
-      unless File.exists?(k_file) &&
+      unless File.exist?(k_file) &&
           File.symlink?(k_file) &&
           File.readlink(k_file) == v
-        if File.exists?(k_file) || File.symlink?(k_file)
+        if File.exist?(k_file) || File.symlink?(k_file)
           mv k_file, "#{k_file}.old", verbose: true
         end
         File.symlink v, k

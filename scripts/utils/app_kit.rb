@@ -50,7 +50,7 @@ class App
   def mksure
     is_fresh = false
 
-    unless exists?
+    unless exist?
       MyPrompt.exit_unless_yes("#{@name} does not exist, install it?")
       install
       is_fresh = true
@@ -66,8 +66,8 @@ class App
     raise "Unable to install #{name} with version(#{@ver}) >= #{@min_ver}"
   end
 
-  def exists?
-    App.exists? @name
+  def exist?
+    App.exist? @name
   end
 
   def install_from_mgr
@@ -85,14 +85,14 @@ class App
   end
 
   def get_src_from_git(repo, tag)
-    App.install_from_mgr 'git' unless App.exists? 'git'
+    App.install_from_mgr 'git' unless App.exist? 'git'
     cd_work_dir(reset: true) do
       ex "git clone #{tag ? "--branch #{tag}" : ''} --depth=1 #{repo}"
     end
   end
 
   def get_src_from_url(url)
-    App.install_from_mgr 'wget' unless App.exists? 'wget'
+    App.install_from_mgr 'wget' unless App.exist? 'wget'
     cd_work_dir(reset: true) do
       ex "wget #{url}"
     end
@@ -103,7 +103,7 @@ class App
     if reset
       reset_dir @work_dir
     else
-      make_sure_dir_exists @work_dir
+      make_sure_dir_exist @work_dir
     end
     FileUtils.cd @work_dir do
       yield
@@ -125,14 +125,14 @@ class App
 
     def set_cache_dir(dir)
       @@cache_dir = dir
-      make_sure_dir_exists @@cache_dir
+      make_sure_dir_exist @@cache_dir
     end
 
     def get_cache_dir
       return @@cache_dir
     end
 
-    def exists?(name)
+    def exist?(name)
       # Don't know why `command -v` does not work here,
       # use `which` instead
       system "which #{name}"
@@ -140,25 +140,25 @@ class App
 
     def find_pkg_mgr
       unless @@pkg_mgr
-        if exists? 'apt-get'
+        if exist? 'apt-get'
           @@su = true
           @@pkg_mgr='apt'
           @@cmd_install='install'
           @@cmd_uninstall='remove'
           @@opt_yes='-y'
-        elsif exists? 'yum'
+        elsif exist? 'yum'
           @@su = true
           @@pkg_mgr='yum'
           @@cmd_install='install'
           @@cmd_uninstall='remove'
           @@opt_yes='-y'
-        elsif exists? 'apk'
+        elsif exist? 'apk'
           @@su = true
           @@pkg_mgr='apk'
           @@cmd_install='add'
           @@cmd_uninstall='del'
           @@opt_yes=''
-        elsif exists? 'brew'
+        elsif exist? 'brew'
           @@su = false
           @@pkg_mgr='brew'
           @@cmd_install='install'

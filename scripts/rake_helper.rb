@@ -76,7 +76,7 @@ $history = LiteCache.new HISTORY_FILE
 
 def cd_build_dir(type)
   dir = File.join $build_dir, type
-  make_sure_dir_exists dir
+  make_sure_dir_exist dir
   cd dir, verbose: true do
     yield
   end
@@ -207,22 +207,22 @@ namespace :utils do
 end
 
 namespace :docker do
-  task :exists do
+  task :exist do
     raise 'Docker not enabled!' unless $docker
   end
 
   desc 'Build docker image'
-  task :build => [:exists] do
+  task :build => [:exist] do
     $docker.build
   end
 
   desc 'Run docker'
-  task :run => [:exists] do
+  task :run => [:exist] do
     $docker.run
   end
 
   desc 'Stop docker'
-  task :stop => [:exists] do
+  task :stop => [:exist] do
     $docker.stop
   end
 end
