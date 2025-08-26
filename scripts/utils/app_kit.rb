@@ -103,7 +103,7 @@ class App
     if reset
       reset_dir @work_dir
     else
-      make_sure_dir_exist @work_dir
+      make_sure_dir_exists @work_dir
     end
     FileUtils.cd @work_dir do
       yield
@@ -125,7 +125,7 @@ class App
 
     def set_cache_dir(dir)
       @@cache_dir = dir
-      make_sure_dir_exist @@cache_dir
+      make_sure_dir_exists @@cache_dir
     end
 
     def get_cache_dir
