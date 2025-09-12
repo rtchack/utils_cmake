@@ -69,6 +69,8 @@ module TC
     end
 
     def mix(dev, kbps, percent, jt, npkts, proto, dst_ip, dst_port)
+      raise 'No given damage!' unless kbps || percent || jt || npkts
+
       emstr = ""
       emstr += "rate #{kbps}Kbit" if kbps
       emstr += " limit #{npkts}" if npkts
