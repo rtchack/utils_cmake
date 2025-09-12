@@ -69,12 +69,10 @@ module TC
     end
 
     def mix(dev, kbps, percent, jt, proto, dst_ip, dst_port)
-      add_netem dev,
-                "rate #{kbps}Kbit limit #{npkts}" \
-                  " loss #{percent}% delay #{jt.to_i + 8}ms #{jt}ms distribution normal",
-                proto,
-                dst_ip: dst_ip,
-                dst_port: dst_port
+      emstr = ""
+      emstr += "rate #{kbps}Kbit limit #{npkts}" if kbps
+      emstr += " loss #{percent}% delay #{jt.to_i + 8}ms #{jt}ms distribution normal"
+      add_netem dev, emstr, proto, dst_ip: dst_ip, dst_port: dst_port
     end
 
     def rate(dev, kbps, npkts, proto, dst_ip, dst_port)
