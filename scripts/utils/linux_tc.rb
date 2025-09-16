@@ -68,15 +68,32 @@ module TC
                 dst_port: dst_port
     end
 
-    def mix(dev, kbps, percent, jt, npkts, proto, dst_ip, dst_port)
-      raise 'No given damage!' unless kbps || percent || jt || npkts
+    def rate_and_loss(dev, kbps, percent, proto, dst_ip, dst_port)
+      raise 'No given damage!' unless kbps && percent
+      add_netem dev,
+                "rate #{kbps}Kbit loss #{percent}% ",
+                proto,
+                dst_ip: dst_ip,
+                dst_port: dst_port
+    end
 
-      emstr = ""
-      emstr += "rate #{kbps}Kbit" if kbps
-      emstr += " limit #{npkts}" if npkts
-      emstr += " loss #{percent}%" if percent
-      emstr += " delay #{jt.to_i + 8}ms #{jt}ms distribution normal" if jt
-      add_netem dev, emstr, proto, dst_ip: dst_ip, dst_port: dst_port
+    def loss_and_rate(dev, percent, kbps, proto, dst_ip, dst_port)
+      raise 'No given damage!' unless kbps && percent
+      add_netem dev,
+                "loss #{percent}% rate #{kbps}Kbit",
+                proto,
+                dst_ip: dst_ip,
+                dst_port: dst_port
+    end
+
+    def mix(dev, percent, jt, proto, dst_ip, dst_port)
+      raise 'No given damage!' unless percent && jt
+
+      add_netem dev,
+                " loss #{percent}%" " delay #{jt.to_i + 8}ms #{jt}ms distribution normal",
+                proto,
+                dst_ip: dst_ip,
+                dst_port: dst_port
     end
 
     def rate(dev, kbps, npkts, proto, dst_ip, dst_port)
