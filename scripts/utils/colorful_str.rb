@@ -4,6 +4,18 @@
 
 # Colorful String
 class String
+  def camelize
+    split('_').collect(&:capitalize).join
+  end
+
+  def underscore
+    gsub(/::/, '/').
+      gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
+      gsub(/([a-z\d])([A-Z])/, '\1_\2').
+      tr("-", "_").
+      downcase
+  end
+
   # colorization
   def colorize(color_code)
     "\e[#{color_code}m#{self}\e[0m"
@@ -30,6 +42,10 @@ class String
   end
 
   def light_blue
+    colorize(94)
+  end
+
+  def cyan
     colorize(36)
   end
 end
