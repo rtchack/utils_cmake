@@ -1,8 +1,7 @@
 #
-# Created by xing
+# Created by xing in 2019
 #
 
-# Colorful String
 class String
   def camelize
     split('_').collect(&:capitalize).join
@@ -16,9 +15,18 @@ class String
       downcase
   end
 
-  # colorization
+  # Truncate to +len+ chars (default: Conf[:preview_len]).
+  def preview(len = Conf[:preview_len])
+    return self if length <= len
+    self[0, len]
+  end
+
   def colorize(color_code)
     "\e[#{color_code}m#{self}\e[0m"
+  end
+
+  def gray
+    colorize(90)
   end
 
   def red
@@ -41,6 +49,14 @@ class String
     colorize(35)
   end
 
+  def magenta
+    colorize(35)
+  end
+
+  def bright_magenta
+    colorize(95)
+  end
+
   def light_blue
     colorize(94)
   end
@@ -48,4 +64,5 @@ class String
   def cyan
     colorize(36)
   end
+
 end
