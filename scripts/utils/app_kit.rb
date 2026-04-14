@@ -5,7 +5,7 @@
 require_relative './colorful_str'
 require_relative './my_file_utils'
 require_relative './my_prompt'
-require_relative './check_os'
+require_relative './os'
 
 SUDO = %x(echo $EUID) =~ /^0$/ ? '' : 'sudo'
 
