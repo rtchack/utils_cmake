@@ -21,6 +21,20 @@ class String
     self[0, len]
   end
 
+  # Semantic version comparison: is self < second?
+  # e.g. "1.20".ver_less_than?("1.21") => true
+  def ver_less_than?(second)
+    v1 = split(/ *\. */)
+    v2 = second.split(/ *\. */)
+
+    0.upto [v1.size, v2.size].min do |i|
+      return false if v1[i].to_i > v2[i].to_i
+      return true if v1[i].to_i < v2[i].to_i
+    end
+
+    v1.size < v2.size
+  end
+
   def colorize(color_code)
     "\e[#{color_code}m#{self}\e[0m"
   end

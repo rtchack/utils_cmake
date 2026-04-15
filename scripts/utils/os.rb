@@ -24,6 +24,19 @@ module OS
       unix? && !mac?
     end
 
+    # System pointer width in bits (64 or 32).
+    def bits
+      1.size == 8 ? 64 : 32
+    end
+
+    def win64?
+      win? && bits == 64
+    end
+
+    def win32?
+      win? && bits == 32
+    end
+
     def old_centos?
       uname && (uname =~ /centos.+tlinux/)
     end
@@ -74,7 +87,7 @@ module OS
       arch = RbConfig::CONFIG["host_cpu"]
       case arch
       when /arm64|aarch64/ then "arm64"
-      when /x86_64|amd64/  then "amd64"
+      when /x86_64|x64|amd64/ then "amd64"
       when /i[3-6]86/      then "386"
       else arch
       end
