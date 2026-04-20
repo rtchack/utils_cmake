@@ -153,15 +153,17 @@ module OS
       false
     end
 
-    # Stream a shell command, inheriting stdout/stderr.
+    # Stream a shell command.
+    # Unix: uses system() to inherit the parent TTY (preserves colors, progress bars, etc.).
+    # Windows: uses IO.popen to avoid edge-case issues with cmd.exe argument handling.
     def sh_stream(cmd, env: {})
       merged = ENV.to_h.merge(env)
       if win?
         IO.popen([merged, "cmd", "/c", cmd], err: [:child, :out]) { |io| io.each { |l| print l } }
+        $?.success?
       else
-        IO.popen([merged, "bash", "-c", cmd], err: [:child, :out]) { |io| io.each { |l| print l } }
+        system(merged, "bash", "-c", cmd)
       end
-      $?.success?
     end
   end
 end
