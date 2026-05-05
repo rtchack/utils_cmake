@@ -36,34 +36,64 @@ class Docker
     def ensure!
       return if available?
 
-      # Special case: Podman is installed but machine not started
-      if OS.win? && cmd_exist?("podman") && !podman_running?
-        puts "\n❌ Podman is installed but not running.".red
-        puts "\n  Please start Podman Machine first:"
-        puts "    podman machine init   # (first time only)"
-        puts "    podman machine start"
-        puts
-        abort
-      end
-
-      puts "\n❌ No container runtime found.".red
-      puts "\n  Please install one of the following:"
       if OS.win?
-        puts "    • Docker Desktop : https://www.docker.com/products/docker-desktop"
-        puts "    • Podman Desktop : https://podman-desktop.io"
+        if cmd_exist?("docker") && !docker_running?
+          abort_not_running("Docker Desktop", "Open Docker Desktop and wait for it to start")
+        elsif cmd_exist?("podman") && !podman_running?
+          abort_not_running("Podman", "podman machine init   # (first time only)\n    podman machine start")
+        else
+          abort_not_installed(
+            "    • Docker Desktop : https://www.docker.com/products/docker-desktop\n" \
+            "    • Podman Desktop : https://podman-desktop.io"
+          )
+        end
       elsif OS.mac?
-        puts "    • Docker Desktop : https://www.docker.com/products/docker-desktop"
-        puts "    • Colima (brew)  : brew install colima docker && colima start"
-        puts "    • Podman Desktop : https://podman-desktop.io"
+        if docker_desktop_installed? && !docker_running?
+          abort_not_running("Docker Desktop", "Open Docker Desktop and wait for it to start")
+        elsif cmd_exist?("colima") && !colima_running?
+          abort_not_running("Colima", "colima start")
+        elsif cmd_exist?("podman") && !podman_running?
+          abort_not_running("Podman", "podman machine init   # (first time only)\n    podman machine start")
+        elsif cmd_exist?("docker") && !docker_running?
+          abort_not_running("container runtime", "start your container runtime (OrbStack, Rancher Desktop, etc.)")
+        else
+          abort_not_installed(
+            "    • Docker Desktop : https://www.docker.com/products/docker-desktop\n" \
+            "    • Colima (brew)  : brew install colima docker && colima start\n" \
+            "    • Podman Desktop : https://podman-desktop.io"
+          )
+        end
       else
-        puts "    • Docker Engine  : https://docs.docker.com/engine/install/"
-        puts "    • Podman         : https://podman.io/getting-started/installation"
+        if cmd_exist?("docker") && !docker_running?
+          abort_not_running("Docker", "sudo systemctl start docker")
+        elsif cmd_exist?("podman") && !podman_running?
+          abort_not_running("Podman", "systemctl --user start podman.socket")
+        else
+          abort_not_installed(
+            "    • Docker Engine  : https://docs.docker.com/engine/install/\n" \
+            "    • Podman         : https://podman.io/getting-started/installation"
+          )
+        end
       end
+    end
+
+    private
+
+    def abort_not_running(runtime, start_cmd)
+      puts "\n❌ #{runtime} is installed but not running.".red
+      puts "\n  Please start it first:"
+      puts "    #{start_cmd}"
       puts
       abort
     end
 
-    private
+    def abort_not_installed(install_hints)
+      puts "\n❌ No container runtime found.".red
+      puts "\n  Please install one of the following:"
+      puts install_hints
+      puts
+      abort
+    end
 
     def cmd_exist?(cmd)
       if OS.win?
@@ -97,19 +127,22 @@ class Docker
         return "Docker"
       end
 
+
       # 2. On Windows: Podman as Docker Desktop alternative
       if OS.win? && cmd_exist?("podman") && podman_running?
         return "Podman"
       end
 
-      # 3. On Mac: Colima as Docker Desktop alternative
+      # 3. On Mac: known alternatives, then generic docker-socket fallback
       if OS.mac?
         if cmd_exist?("colima") && colima_running?
-          return "Colima"  # Colima exposes the standard docker socket
+          return "Colima"
         end
         if cmd_exist?("podman") && podman_running?
           return "Podman"
         end
+        # Unknown alternative (OrbStack, Rancher Desktop, etc.) exposing docker socket
+        return "Docker" if docker_running?
       end
 
       # 4. On Linux: Podman fallback
@@ -158,6 +191,10 @@ class Docker
       output.include?("running")
     rescue
       false
+    end
+
+    def docker_desktop_installed?
+      File.exist?("/Applications/Docker.app")
     end
   end
 
