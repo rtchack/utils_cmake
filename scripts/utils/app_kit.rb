@@ -15,14 +15,26 @@ else
   Process.euid == 0 ? '' : 'sudo'
 end
 
-# Execute a shell command with optional sudo and logging.
-# Delegates to OS.sh_stream for cross-platform shell handling.
-def ex(cmd, su: false, verbose: true)
-  real_cmd = su ? "#{SUDO} #{cmd}".strip : cmd
-  puts "#{Time.now.localtime.to_s.pink}\n>> #{real_cmd.yellow} <<" if verbose
-  unless OS.sh_stream(real_cmd)
-    raise "Command failed: #{real_cmd}"
+# Execute a shell command with optional sudo, env overrides and logging.
+# `cmd` may be a String (run via the platform shell) or an Array of
+# [program, *args] (spawned with no shell — robust against Windows
+# cmd.exe quote-mangling). `env` is merged into the current environment
+# before spawning (never replaces it). Delegates to OS.sh_stream for
+# cross-platform shell handling.
+def ex(cmd, su: false, env: {}, verbose: true)
+  if cmd.is_a?(Array)
+    # SUDO-prefixing only makes sense for a shell string; an Array is a
+    # bare program+args with no shell to prepend into. Fail fast so the
+    # contract can't silently drop a `su: true` (AGENTS.md principle #3).
+    raise "ex: su: is incompatible with the Array cmd form (use a String)" if su
+    display = cmd.join(" ")
+    to_run = cmd
+  else
+    to_run = su ? "#{SUDO} #{cmd}".strip : cmd
+    display = to_run
   end
+  puts "#{Time.now.localtime.to_s.pink}\n>> #{display.yellow} <<" if verbose
+  raise "Command failed: #{display}" unless OS.sh_stream(to_run, env: env)
 end
 
 class App

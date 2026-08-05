@@ -4,8 +4,22 @@
 
 require_relative 'os'
 require_relative 'string'
+# ``app_kit`` gives us ``App.devnull`` (used by :meth:`start!` to muffle
+# the ``open -a Docker`` command); guarded elsewhere against circular
+# require. Kept last so the ordering matches the load path other tools
+# under tools/utils/ rely on.
+require_relative 'app_kit'
 
 class Docker
+  # Timing knobs for :meth:`Docker.start!`. Declared at class level
+  # (not inside ``class << self``) so both singleton methods and any
+  # future instance-side helpers can reach them via the ``Docker::``
+  # namespace. Kept as plain constants because they never vary at
+  # runtime and a per-call keyword argument in ``wait_for_daemon``
+  # already lets callers override the poll window when needed.
+  START_TIMEOUT_SEC = 90
+  START_POLL_INTERVAL_SEC = 1.0
+
   class << self
     # Returns the detected runtime name, or nil if none available
     def name
@@ -30,6 +44,100 @@ class Docker
       when "Podman"
         "podman"
       end
+    end
+
+    # Returns true when SOME container runtime is *installed* on the host,
+    # regardless of whether its daemon is currently up. Used by
+    # ``rake be:monitor:env`` — env-time only cares about "can we start
+    # a daemon later", not "is it up right now"; the daemon is spun up
+    # on demand by :meth:`start!` from ``rake be:monitor:run``. Keeping
+    # env-time cheap (no docker info handshake) means the check works
+    # in offline / laptop-just-woke-up scenarios that would otherwise
+    # abort with "daemon not running" and force a manual start before
+    # the user has even asked to run anything.
+    #
+    # Detection surface (matches :meth:`ensure!`'s branches):
+    #   * ``docker`` / ``podman`` binary on PATH  → installed
+    #   * mac: ``/Applications/Docker.app`` present → Docker Desktop
+    #     installed (its GUI may add the CLI later on first launch)
+    #   * mac: ``colima`` binary on PATH → colima installed
+    #
+    # We deliberately do NOT check daemon reachability here — the whole
+    # point of splitting ``installed?`` off from ``available?`` is to
+    # avoid the daemon poke.
+    def installed?
+      return true if cmd_exist?("docker") || cmd_exist?("podman")
+      return true if OS.mac? && (docker_desktop_installed? || cmd_exist?("colima"))
+      false
+    end
+
+    # Best-effort: make sure a container daemon is running, starting one
+    # if a supported runtime is installed but idle. Called by
+    # ``rake be:monitor:run`` so the user does not have to remember to
+    # ``colima start`` / open Docker Desktop before every session.
+    #
+    # Platform behaviour:
+    #   * mac  — if colima is installed, prefer it (``colima start`` is
+    #     idempotent and reasonably fast); else fall back to opening
+    #     Docker Desktop via ``open -a Docker`` and polling the daemon.
+    #     We poll ``docker info`` for up to _START_TIMEOUT_SEC because
+    #     the app's daemon takes 5-30s to be reachable after ``open``.
+    #   * linux / win — do NOT auto-run ``sudo systemctl start docker``
+    #     or ``systemctl --user start podman.socket``: rake is a
+    #     dev-time tool and stealing a sudo prompt mid-session is worse
+    #     than a clear failure message. Delegate to :meth:`ensure!`
+    #     which prints the exact command the user should run.
+    #
+    # Return value: nil on success (or when the daemon was already up).
+    # Aborts (via :meth:`ensure!`) when nothing supported is installed.
+    def start!
+      return if available?  # daemon already up — nothing to do
+
+      unless installed?
+        # No runtime at all — reuse the install guidance from ensure!.
+        ensure!
+        return
+      end
+
+      if OS.mac?
+        # Prefer colima on mac: brew installs put it on PATH and
+        # ``colima start`` is idempotent (returns 0 if already running).
+        # This matches the "install colima first if you don't have
+        # Docker Desktop" advice we give in :meth:`ensure!`.
+        if cmd_exist?("colima")
+          puts "  container runtime: starting Colima...".cyan
+          system("colima start")  # deliberately non-fatal; we poll below
+          if wait_for_daemon
+            reset_detection!
+            puts "  container runtime: Colima up (docker socket reachable)".green
+            return
+          end
+        elsif docker_desktop_installed?
+          puts "  container runtime: opening Docker Desktop...".cyan
+          system("open -a Docker >#{App.devnull} 2>&1")
+          if wait_for_daemon
+            reset_detection!
+            puts "  container runtime: Docker Desktop up".green
+            return
+          end
+        end
+        # We tried and the daemon still is not up. Let ensure! print
+        # the exact command the user should run next.
+        ensure!
+      else
+        # linux / windows — do not steal a sudo / UAC prompt; ensure!
+        # already knows the correct start command per platform.
+        ensure!
+      end
+    end
+
+    # Reset memoised runtime detection so a fresh detect_name runs
+    # after we changed daemon state (e.g. after :meth:`start!`).
+    # ``@name`` and ``@compose_cmd`` are lazily set the first time the
+    # accessor runs, so wiping them forces the next call to redetect.
+    def reset_detection!
+      @name = nil
+      @compose_cmd = nil
     end
 
     # Abort with a helpful install hint if no runtime found
@@ -195,6 +303,21 @@ class Docker
 
     def docker_desktop_installed?
       File.exist?("/Applications/Docker.app")
+    end
+
+    # Poll ``docker info`` (or ``podman info``) until the daemon
+    # answers, or the deadline expires. Called from :meth:`start!`
+    # after kicking off ``colima start`` / ``open -a Docker`` because
+    # both are asynchronous — the command returns before the socket
+    # is reachable. Returns true on success, false on timeout; caller
+    # decides whether to escalate.
+    def wait_for_daemon(timeout_sec: START_TIMEOUT_SEC, poll_sec: START_POLL_INTERVAL_SEC)
+      deadline = Time.now + timeout_sec
+      while Time.now < deadline
+        return true if docker_running? || podman_running?
+        sleep poll_sec
+      end
+      false
     end
   end
 

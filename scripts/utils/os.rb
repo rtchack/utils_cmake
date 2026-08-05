@@ -153,12 +153,17 @@ module OS
       false
     end
 
-    # Stream a shell command.
-    # Unix: uses system() to inherit the parent TTY (preserves colors, progress bars, etc.).
-    # Windows: uses IO.popen to avoid edge-case issues with cmd.exe argument handling.
+    # Stream a shell command. Accepts a String (run via bash -c on Unix,
+    # cmd /c on Windows) or an Array of [program, *args] spawned with no
+    # shell — Ruby's array-form spawn applies correct per-arg quoting,
+    # which on Windows avoids the quote-mangling that cmd /c inflicts on a
+    # single command string with embedded quotes.
     def sh_stream(cmd, env: {})
       merged = ENV.to_h.merge(env)
-      if win?
+      if cmd.is_a?(Array)
+        system(merged, *cmd)
+        $?.success?
+      elsif win?
         IO.popen([merged, "cmd", "/c", cmd], err: [:child, :out]) { |io| io.each { |l| print l } }
         $?.success?
       else
