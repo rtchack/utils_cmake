@@ -93,6 +93,16 @@ module OS
       end
     end
 
+    # Local host cpu arch in docker-image naming ("x86-64" / "arm64");
+    # any other host arch raises instead of guessing a fallback.
+    def cpu
+      case goarch
+      when "amd64" then "x86-64"
+      when "arm64" then "arm64"
+      else raise "Unsupported host cpu '#{goarch}', expect x86-64 or arm64"
+      end
+    end
+
     # CGO env vars for `go run` / `go build` on the current host.
     def cgo_env
       goos = mac? ? "darwin" : linux? ? "linux" : win? ? "windows" : local
